@@ -13,7 +13,7 @@ import java.util.Properties;
 public class KafkaMessageProducer {
     private static final String KAFKA_BROKERS = "52.169.28.113:9092, 52.169.28.113:9093";
     private static final String CLIENT_ID = "rssCrawler";
-    private static final String TOPIC_NAME = "rawMessages-test";
+    private static final String TOPIC_NAME = "rawMessages";
 
     private Producer<RssChannelInfo, SyndEntry> producer;
 
