@@ -1,0 +1,1 @@
+web: java-Dserver.posrt=$PORT -jar build/libs/pik-rss-crawler-0.1.0.jar
