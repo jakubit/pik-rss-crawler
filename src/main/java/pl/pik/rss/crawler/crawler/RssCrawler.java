@@ -10,13 +10,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import pl.pik.rss.crawler.kafka.KafkaMessageProducer;
 import pl.pik.rss.crawler.kafka.RssChannelInfo;
-import pl.pik.rss.crawler.subscriptions.Subscription;
-import pl.pik.rss.crawler.subscriptions.SubscriptionRepository;
+import pl.pik.rss.crawler.subscriptions.model.Subscription;
+import pl.pik.rss.crawler.subscriptions.repository.SubscriptionRepository;
 
 import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,13 +46,12 @@ public class RssCrawler {
             SyndFeed feed = fetchFeed(subscriptionUrl);
             List<SyndEntry> newEntries = fetchNewEntries(feed, lastUpdate);
 
-
-            publishFeedEntriesToKafka(feed, newEntries);
+            publishFeedEntriesToKafka(feed, newEntries, subscriptionUrl);
         }
     }
 
-    private void publishFeedEntriesToKafka(SyndFeed feed, List<SyndEntry> newEntries) {
-        RssChannelInfo rssChannelInfo = new RssChannelInfo(feed.getTitle(), feed.getDescription(), feed.getLanguage(), feed.getLink());
+    private void publishFeedEntriesToKafka(SyndFeed feed, List<SyndEntry> newEntries, String subscriptionUrl) {
+        RssChannelInfo rssChannelInfo = new RssChannelInfo(feed.getTitle(), feed.getDescription(), feed.getLanguage(), subscriptionUrl);
 
         for (SyndEntry entry : newEntries) {
             kafkaMessageProducer.produce(rssChannelInfo, entry);
