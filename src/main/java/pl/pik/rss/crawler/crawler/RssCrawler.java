@@ -45,7 +45,6 @@ public class RssCrawler {
 
             SyndFeed feed = fetchFeed(subscriptionUrl);
             List<SyndEntry> newEntries = fetchNewEntries(feed, lastUpdate);
-
             publishFeedEntriesToKafka(feed, newEntries, subscriptionUrl);
         }
     }
@@ -70,18 +69,25 @@ public class RssCrawler {
 
     private List<SyndEntry> fetchNewEntries(SyndFeed feed, LocalDateTime lastUpdate) {
         List<SyndEntry> entries = feed.getEntries();
-        return filterEntries(entries, lastUpdate);
+        return filterEntries(feed.getLink(), entries, lastUpdate);
     }
 
-    private List<SyndEntry> filterEntries(List<SyndEntry> allNews, LocalDateTime lastUpdate) {
+    private List<SyndEntry> filterEntries(String channelUrl, List<SyndEntry> allNews, LocalDateTime lastUpdate) {
         return allNews.stream().filter(
-                (entry -> isNewsNew(entry, lastUpdate))
+                (entry -> isNewsNew(channelUrl, entry, lastUpdate))
         ).collect(Collectors.toList());
     }
 
-    private static boolean isNewsNew(SyndEntry entry, LocalDateTime lastUpdate) {
+    private static boolean isNewsNew(String channelUrl, SyndEntry entry, LocalDateTime lastUpdate) {
         LocalDateTime entryPublishDate = convertToLocalDateTimeViaSqlTimestamp(entry.getPublishedDate());
-        return entryPublishDate.isAfter(lastUpdate);
+        System.out.println(String.format("\n\nCHANNEL: %s\nTITLE: %s \nDATE: %s \nLAST_UPDATE: %s", channelUrl, entry.getTitle(), entry.getPublishedDate(), lastUpdate));
+        if (entryPublishDate.isAfter(lastUpdate)) {
+            System.out.println("IS NEW");
+            return true;
+        } else {
+            System.out.println("IS NOT NEW");
+            return false;
+        }
     }
 
     private static LocalDateTime convertToLocalDateTimeViaSqlTimestamp(Date dateToConvert) {

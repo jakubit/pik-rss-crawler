@@ -28,8 +28,6 @@ public class KafkaMessageProducer {
     }
 
     public void produce(RssChannelInfo rssChannelInfo, SyndEntry entry) {
-        System.out.println(rssChannelInfo);
-        System.out.println(entry);
         producer.send(new ProducerRecord<>(TOPIC_NAME, rssChannelInfo, entry));
     }
 
