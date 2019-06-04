@@ -14,6 +14,7 @@ import pl.pik.rss.crawler.subscriptions.model.Subscription;
 import pl.pik.rss.crawler.subscriptions.repository.SubscriptionRepository;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -34,18 +35,22 @@ public class RssCrawler {
     }
 
     @Scheduled(fixedDelay = 10000)
-    public void crawlOverSubscriptions() throws IOException, FeedException {
+    public void crawlOverSubscriptions() {
         Iterable<Subscription> subscriptions = subscriptionRepository.findAll();
 
         for (Subscription subscription : subscriptions) {
             String subscriptionUrl = subscription.getUrl();
-            
+
             LocalDateTime lastUpdate = subscription.getLastUpdate();
             setLastUpdateDateOfSubscription(subscriptionUrl);
 
-            SyndFeed feed = fetchFeed(subscriptionUrl);
-            List<SyndEntry> newEntries = fetchNewEntries(feed, lastUpdate);
-            publishFeedEntriesToKafka(feed, newEntries, subscriptionUrl);
+            try {
+                SyndFeed feed = fetchFeed(subscriptionUrl);
+                List<SyndEntry> newEntries = fetchNewEntries(feed, lastUpdate);
+                publishFeedEntriesToKafka(feed, newEntries, subscriptionUrl);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
