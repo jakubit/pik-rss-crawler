@@ -44,22 +44,23 @@ public class RssCrawler {
                 String subscriptionUrl = subscription.getUrl();
                 LocalDateTime lastUpdate = subscription.getLastUpdate();
                 SyndFeed feed = fetchFeed(subscriptionUrl);
+
                 List<SyndEntry> newEntries = fetchNewEntries(feed, lastUpdate);
-                publishFeedEntriesToKafka(feed, newEntries, subscriptionUrl);
-                LocalDateTime updateTime = getNewestNewsPublishDate(newEntries);
-                setLastUpdateDateOfSubscription(subscriptionUrl, updateTime);
+                if (!newEntries.isEmpty()) {
+                    publishFeedEntriesToKafka(feed, newEntries, subscriptionUrl);
+                    setChannelLastUpdateDateSameAsNewestNews(newEntries, subscriptionUrl);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private LocalDateTime getNewestNewsPublishDate(List<SyndEntry> news) {
+    private void setChannelLastUpdateDateSameAsNewestNews(List<SyndEntry> news, String subscriptionUrl) {
         Optional<SyndEntry> newestNews = news.stream().max(Comparator.comparing(SyndEntry::getPublishedDate));
         if (newestNews.isPresent()) {
-            return convertToLocalDateTimeViaSqlTimestamp(newestNews.get().getPublishedDate());
-        } else {
-            return LocalDateTime.now().minusMinutes(30);
+            LocalDateTime newLastUpdate = convertToLocalDateTimeViaSqlTimestamp(newestNews.get().getPublishedDate());
+            setLastUpdateDateOfSubscription(subscriptionUrl, newLastUpdate);
         }
     }
 
