@@ -14,11 +14,12 @@ import pl.pik.rss.crawler.subscriptions.model.Subscription;
 import pl.pik.rss.crawler.subscriptions.repository.SubscriptionRepository;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -34,23 +35,31 @@ public class RssCrawler {
         this.syndFeedInput = new SyndFeedInput();
     }
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 60000)
     public void crawlOverSubscriptions() {
         Iterable<Subscription> subscriptions = subscriptionRepository.findAll();
 
         for (Subscription subscription : subscriptions) {
-            String subscriptionUrl = subscription.getUrl();
-
-            LocalDateTime lastUpdate = subscription.getLastUpdate();
-            setLastUpdateDateOfSubscription(subscriptionUrl);
-
             try {
+                String subscriptionUrl = subscription.getUrl();
+                LocalDateTime lastUpdate = subscription.getLastUpdate();
                 SyndFeed feed = fetchFeed(subscriptionUrl);
                 List<SyndEntry> newEntries = fetchNewEntries(feed, lastUpdate);
                 publishFeedEntriesToKafka(feed, newEntries, subscriptionUrl);
+                LocalDateTime updateTime = getNewestNewsPublishDate(newEntries);
+                setLastUpdateDateOfSubscription(subscriptionUrl, updateTime);
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private LocalDateTime getNewestNewsPublishDate(List<SyndEntry> news) {
+        Optional<SyndEntry> newestNews = news.stream().max(Comparator.comparing(SyndEntry::getPublishedDate));
+        if (newestNews.isPresent()) {
+            return convertToLocalDateTimeViaSqlTimestamp(newestNews.get().getPublishedDate());
+        } else {
+            return LocalDateTime.now().minusMinutes(30);
         }
     }
 
@@ -62,8 +71,8 @@ public class RssCrawler {
         }
     }
 
-    private void setLastUpdateDateOfSubscription(String subscriptionUrl) {
-        Subscription updatedSubscription = new Subscription(subscriptionUrl, LocalDateTime.now());
+    private void setLastUpdateDateOfSubscription(String subscriptionUrl, LocalDateTime updateDate) {
+        Subscription updatedSubscription = new Subscription(subscriptionUrl, updateDate);
         subscriptionRepository.save(updatedSubscription);
     }
 
