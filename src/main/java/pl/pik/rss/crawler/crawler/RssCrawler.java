@@ -39,7 +39,7 @@ public class RssCrawler {
 
         for (Subscription subscription : subscriptions) {
             String subscriptionUrl = subscription.getUrl();
-
+            
             LocalDateTime lastUpdate = subscription.getLastUpdate();
             setLastUpdateDateOfSubscription(subscriptionUrl);
 
